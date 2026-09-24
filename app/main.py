@@ -8,7 +8,7 @@ from app.data import detail, search
 
 STATIC = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(title="Trova casa", version="0.1.0")
+app = FastAPI(title="Un posto ideale", version="0.1.0")
 
 
 @app.get("/api/health")
