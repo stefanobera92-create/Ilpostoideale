@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe — ricerca immobili</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5c5c5c;
+    --line: #1a1a1a;
+    --paper: #f4f4f2;
+    --card: #fff;
+    --soft: #e6e6e4;
+    --warn: #6b6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) 1fr;
+    min-height: 100%;
+  }
+  header.note {
+    grid-column: 1 / -1;
+    padding: 14px 22px 8px;
+    border-bottom: 1px solid #ccc;
+  }
+  header.note h1 { font-size: 16px; font-weight: 650; margin: 0 0 4px; letter-spacing: 0.01em; }
+  header.note p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; max-width: 920px; }
+  .phone-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 22px 16px 32px;
+  }
+  .phone {
+    width: 390px;
+    height: 780px;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 28px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  }
+  .status {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 14px 8px;
+  }
+  .mark {
+    width: 28px; height: 28px;
+    border: 1.5px solid var(--line);
+    border-radius: 6px;
+    display: grid; place-items: center;
+    font-size: 14px;
+  }
+  .top h2 { font-size: 15px; margin: 0; font-weight: 650; }
+  .shield {
+    margin-left: auto;
+    font-size: 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 8px;
+    letter-spacing: 0.02em;
+  }
+  .map-wrap { position: relative; flex: 1; min-height: 0; background: #f7f7f6; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; }
+  canvas { width: 100%; height: 100%; display: block; }
+  .counter {
+    position: absolute;
+    left: 12px; top: 12px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 10px;
+    min-width: 148px;
+  }
+  .counter .n { font-size: 22px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .counter .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .counter.searching .n { color: var(--muted); }
+  .hint {
+    position: absolute;
+    right: 12px; bottom: 12px;
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.9);
+    border: 1px dashed #999;
+    padding: 4px 6px;
+    border-radius: 6px;
+  }
+  .controls { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: baseline; }
+  .row label { font-size: 12px; }
+  .row output { font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 650; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: #1a1a1a;
+    height: 18px;
+  }
+  .seg { display: flex; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    flex: 1;
+    background: #fff;
+    border: 0;
+    border-right: 1px solid #ccc;
+    padding: 7px 0;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: #1a1a1a; color: #fff; }
+  .sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: #fff;
+    border-top: 1.5px solid var(--line);
+    border-radius: 16px 16px 0 0;
+    padding: 10px 14px 16px;
+    transform: translateY(110%);
+    transition: transform 0.22s ease;
+    max-height: 62%;
+    overflow: auto;
+  }
+  .sheet.open { transform: translateY(0); }
+  .grab { width: 36px; height: 4px; background: #ccc; border-radius: 4px; margin: 0 auto 8px; }
+  .sheet h3 { margin: 0 0 2px; font-size: 15px; }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .facts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pill { border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; font-size: 11px; }
+  .score { font-weight: 700; }
+  .alerts { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+  .alert {
+    font-size: 12px;
+    background: var(--soft);
+    border-left: 3px solid #1a1a1a;
+    padding: 6px 8px;
+  }
+  .ph {
+    height: 72px;
+    border: 1px dashed #999;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 8px;
+  }
+  .close {
+    float: right;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  aside {
+    padding: 22px 28px 40px 8px;
+    max-width: 640px;
+  }
+  aside h2 { font-size: 14px; margin: 0 0 8px; }
+  aside ol, aside ul { margin: 0 0 16px; padding-left: 18px; color: #333; font-size: 13px; line-height: 1.5; }
+  aside li { margin: 4px 0; }
+  .log {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-height: 88px;
+    white-space: pre-wrap;
+    color: #333;
+  }
+  .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  @media (max-width: 860px) {
+    body { grid-template-columns: 1fr; }
+    aside { padding: 0 18px 28px; }
+  }
+</style>
+</head>
+<body>
+<header class="note">
+  <h1>Wireframe — slider, mappa, Safety Shield</h1>
+  <p>Schermata principale in bianco e nero. I dati sono dimostrativi (Italia, Spagna, Albania, Grecia). Trascinare uno slider aggiorna subito l’etichetta; puntini e contatore partono solo dopo una breve pausa, come farà l’app vera. Il tap su un puntino apre la scheda, unico momento in cui compaiono testo e avvisi.</p>
+</header>
+
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>wireframe</span></div>
+    <div class="top">
+      <div class="mark">≡</div>
+      <h2>Trova casa</h2>
+      <div class="shield">Safety Shield attivo</div>
+    </div>
+    <div class="map-wrap">
+      <canvas id="map"></canvas>
+      <div class="counter" id="counter">
+        <div class="n" id="count">—</div>
+        <div class="l" id="countLabel">immobili nel filtro</div>
+      </div>
+      <div class="hint">solo coordinate e id</div>
+    </div>
+    <div class="controls">
+      <div class="row"><label for="budget">Budget massimo</label><output id="budgetOut">€ 90.000</output></div>
+      <input id="budget" type="range" min="15000" max="220000" step="5000" value="90000">
+      <div class="row"><label for="sea">Distanza dal mare</label><output id="seaOut">25 km</output></div>
+      <input id="sea" type="range" min="1" max="80" step="1" value="25">
+      <div class="row"><label for="sqm">Superficie minima</label><output id="sqmOut">50 m²</output></div>
+      <input id="sqm" type="range" min="30" max="140" step="5" value="50">
+      <div class="seg" id="types">
+        <button type="button" data-type="tutti" class="on">Tutti</button>
+        <button type="button" data-type="asta">Aste</button>
+        <button type="button" data-type="mercato">Mercato</button>
+      </div>
+    </div>
+    <div class="sheet" id="sheet">
+      <div class="grab"></div>
+      <button class="close" id="close" type="button">Chiudi</button>
+      <h3 id="dTitle">—</h3>
+      <div class="meta" id="dMeta">—</div>
+      <div class="facts" id="dFacts"></div>
+      <div class="alerts" id="dAlerts"></div>
+      <div class="ph">Foto e descrizione completa — scaricate solo al tap</div>
+    </div>
+  </div>
+</div>
+
+<aside>
+  <div class="k">Cosa fissa questo disegno</div>
+  <h2>Flusso mentre si muove il dito</h2>
+  <ol>
+    <li>L’etichetta dello slider cambia a ogni movimento. La mappa no.</li>
+    <li>Dopo circa 180 ms di pausa parte la “ricerca”: in produzione è una sola chiamata, non una per millimetro.</li>
+    <li>La risposta aggiorna contatore e puntini. Nel log a destra si vede il payload ridotto: id, lat, lon, prezzo.</li>
+    <li>Scheda, avvisi e riquadro foto compaiono solo se si tocca un pin.</li>
+  </ol>
+  <h2>Safety Shield, in questo wireframe</h2>
+  <ul>
+    <li>Filtro hard: l’area tratteggiata non restituisce mai immobili. È un poligono di esempio, non una zona reale.</li>
+    <li>Filtro soft: gli immobili restano in mappa. L’avviso (sismico o criminalità) sta solo nella scheda.</li>
+  </ul>
+  <h2>Ultima risposta simulata</h2>
+  <div class="log" id="log">In attesa del primo filtro.</div>
+</aside>
+
+<script>
+const bounds = { minLon: -10, maxLon: 28, minLat: 35.2, maxLat: 46.6 };
+const exclusion = [[20.4, 41.2], [23.6, 41.2], [23.6, 39.2], [20.4, 39.2]];
+
+const cities = [
+  ["Palermo", "Italia", 38.12, 13.36],
+  ["Catania", "Italia", 37.51, 15.08],
+  ["Napoli", "Italia", 40.85, 14.27],
+  ["Bari", "Italia", 41.12, 16.87],
+  ["Cagliari", "Italia", 39.22, 9.12],
+  ["Genova", "Italia", 44.41, 8.93],
+  ["Lecce", "Italia", 40.35, 18.17],
+  ["Reggio Calabria", "Italia", 38.11, 15.65],
+  ["Sassari", "Italia", 40.73, 8.56],
+  ["Matera", "Italia", 40.67, 16.6],
+  ["Agrigento", "Italia", 37.31, 13.58],
+  ["Salemi", "Italia", 37.82, 12.8],
+  ["Gangi", "Italia", 37.8, 14.2],
+  ["Sambuca", "Italia", 37.65, 13.11],
+  ["Trieste", "Italia", 45.65, 13.78],
+  ["Málaga", "Spagna", 36.72, -4.42],
+  ["Almería", "Spagna", 36.84, -2.46],
+  ["Valencia", "Spagna", 39.47, -0.38],
+  ["Alicante", "Spagna", 38.35, -0.48],
+  ["Cádiz", "Spagna", 36.53, -6.29],
+  ["Granada", "Spagna", 37.18, -3.6],
+  ["Vigo", "Spagna", 42.24, -8.72],
+  ["Bilbao", "Spagna", 43.26, -2.93],
+  ["Oviedo", "Spagna", 43.36, -5.84],
+  ["Algeciras", "Spagna", 36.14, -5.45],
+  ["Tirana", "Albania", 41.33, 19.82],
+  ["Durazzo", "Albania", 41.32, 19.45],
+  ["Valona", "Albania", 40.47, 19.49],
+  ["Saranda", "Albania", 39.87, 20.0],
+  ["Berat", "Albania", 40.7, 19.95],
+  ["Scutari", "Albania", 42.07, 19.51],
+  ["Atene", "Grecia", 37.98, 23.73],
+  ["Salonicco", "Grecia", 40.64, 22.94],
+  ["Patrasso", "Grecia", 38.25, 21.73],
+  ["Candia", "Grecia", 35.34, 25.14],
+  ["La Canea", "Grecia", 35.51, 24.02],
+  ["Corfù", "Grecia", 39.62, 19.92],
+  ["Kalamata", "Grecia", 37.04, 22.11],
+  ["Ioannina", "Grecia", 39.67, 20.85]
+];
+
+function hash(n) {
+  let x = Math.sin(n * 127.1) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+const properties = [];
+let seq = 1;
+cities.forEach((c, ci) => {
+  const copies = 2 + (ci % 3);
+  for (let k = 0; k < copies; k++) {
+    const r1 = hash(ci * 10 + k + 1);
+    const r2 = hash(ci * 10 + k + 2);
+    const r3 = hash(ci * 10 + k + 3);
+    const r4 = hash(ci * 10 + k + 4);
+    const auction = r1 > 0.45;
+    const price = auction
+      ? Math.round((8000 + r2 * 70000) / 1000) * 1000
+      : Math.round((45000 + r2 * 160000) / 1000) * 1000;
+    const lat = c[2] + (r3 - 0.5) * 0.35;
+    const lon = c[3] + (r4 - 0.5) * 0.45;
+    const alerts = [];
+    if (c[1] === "Italia" && c[2] < 40.2 && r1 > 0.55) alerts.push("Rischio sismico elevato");
+    if (r2 > 0.82) alerts.push("Criminalità sopra la media");
+    properties.push({
+      id: "p" + seq++,
+      city: c[0],
+      country: c[1],
+      lat, lon,
+      price,
+      sqm: 35 + Math.round(r3 * 28) * 5,
+      seaKm: Math.round((0.4 + r4 * (c[0] === "Matera" || c[0] === "Granada" || c[0] === "Oviedo" ? 70 : 28)) * 10) / 10,
+      type: auction ? "asta" : "mercato",
+      alerts
+    });
+  }
+});
+
+// A few points inside the sample exclusion polygon, to prove they never show.
+properties.push(
+  { id: "ex1", city: "Esempio escluso", country: "—", lat: 40.2, lon: 21.6, price: 20000, sqm: 80, seaKm: 5, type: "asta", alerts: [], excluded: true },
+  { id: "ex2", city: "Esempio escluso", country: "—", lat: 39.8, lon: 22.4, price: 35000, sqm: 60, seaKm: 8, type: "mercato", alerts: [], excluded: true }
+);
+
+const land = [
+  // Iberia
+  [[-9.3,43.2],[-8.2,43.7],[-5.6,43.6],[-1.8,43.3],[0.6,42.6],[3.1,42.4],[3.2,41.4],[0.7,40.6],[-0.3,38.7],[-1.8,36.7],[-5.6,36.0],[-7.2,37.0],[-8.9,38.6],[-9.4,41.2]],
+  // Balearics-ish speck
+  [[1.4,39.1],[2.2,39.9],[3.2,39.9],[3.1,39.3],[2.4,38.9],[1.5,38.9]],
+  // Italy
+  [[6.7,43.9],[8.8,44.4],[10.2,44.0],[12.2,45.6],[13.6,45.7],[13.5,43.6],[12.4,42.1],[14.8,41.2],[15.6,40.0],[18.4,40.1],[18.5,39.1],[16.1,38.0],[15.6,37.9],[15.1,38.2],[12.6,37.6],[13.4,41.0],[12.2,41.8],[10.6,42.7],[9.4,41.2],[8.3,40.6],[8.2,38.8],[8.6,41.6],[7.6,43.5]],
+  // Sardinia
+  [[8.2,41.1],[9.6,41.2],[9.8,40.0],[9.6,39.1],[8.4,38.9],[8.3,40.0]],
+  // Sicily
+  [[12.5,38.2],[13.4,38.2],[15.1,38.2],[15.6,38.0],[15.3,36.7],[13.4,37.0],[12.4,37.6]],
+  // Albania / west Balkans blob
+  [[19.3,42.5],[19.6,41.8],[19.4,40.6],[19.8,40.0],[20.2,39.7],[20.6,40.4],[20.4,41.5],[20.1,42.6]],
+  // Greece mainland
+  [[20.8,39.6],[21.4,38.3],[21.9,37.6],[23.0,37.4],[23.7,38.0],[24.0,38.6],[22.9,39.2],[22.6,40.4],[23.6,41.1],[22.4,40.9],[21.2,40.6],[20.6,40.2]],
+  // Crete
+  [[23.6,35.5],[24.5,35.6],[26.1,35.3],[26.2,35.0],[24.0,34.9],[23.6,35.2]]
+];
+
+const canvas = document.getElementById("map");
+const ctx = canvas.getContext("2d");
+let hits = [];
+let typeFilter = "tutti";
+let timer = null;
+let selected = null;
+
+function project(lon, lat) {
+  const w = canvas.width, h = canvas.height;
+  const x = (lon - bounds.minLon) / (bounds.maxLon - bounds.minLon) * w;
+  const y = (1 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * h;
+  return [x, y];
+}
+
+function insideExclusion(lon, lat) {
+  let c = false;
+  for (let i = 0, j = exclusion.length - 1; i < exclusion.length; j = i++) {
+    const xi = exclusion[i][0], yi = exclusion[i][1];
+    const xj = exclusion[j][0], yj = exclusion[j][1];
+    if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) c = !c;
+  }
+  return c;
+}
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  draw();
+}
+
+function filters() {
+  return {
+    budget: Number(document.getElementById("budget").value),
+    sea: Number(document.getElementById("sea").value),
+    sqm: Number(document.getElementById("sqm").value),
+    type: typeFilter
+  };
+}
+
+function matchScore(p, f) {
+  let s = 62;
+  s += Math.max(0, (f.budget - p.price) / f.budget) * 22;
+  s += Math.max(0, (f.sea - p.seaKm) / f.sea) * 10;
+  s += Math.min(12, (p.sqm - f.sqm) / 8);
+  s -= p.alerts.length * 8;
+  return Math.max(35, Math.min(98, Math.round(s)));
+}
+
+function visible(f) {
+  return properties.filter(p => {
+    if (p.excluded || insideExclusion(p.lon, p.lat)) return false;
+    if (p.price > f.budget) return false;
+    if (p.seaKm > f.sea) return false;
+    if (p.sqm < f.sqm) return false;
+    if (f.type !== "tutti" && p.type !== f.type) return false;
+    return true;
+  });
+}
+
+function drawPoly(points, fill) {
+  ctx.beginPath();
+  points.forEach((pt, i) => {
+    const [x, y] = project(pt[0], pt[1]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = "#bdbdbd";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function draw() {
+  const f = filters();
+  const list = visible(f);
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#f3f3f1";
+  ctx.fillRect(0, 0, w, h);
+
+  land.forEach(poly => drawPoly(poly, "#ffffff"));
+
+  ctx.save();
+  ctx.beginPath();
+  exclusion.forEach((pt, i) => {
+    const [x, y] = project(pt[0], pt[1]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = "rgba(0,0,0,0.06)";
+  ctx.fill();
+  ctx.strokeStyle = "#444";
+  ctx.setLineDash([4, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const [lx, ly] = project(22.0, 40.55);
+  ctx.fillStyle = "#444";
+  ctx.font = `${12 * (window.devicePixelRatio || 1)}px sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText("zona esclusa", lx, ly);
+  ctx.restore();
+
+  const labels = [["Spagna", -3.8, 40.2], ["Italia", 12.2, 42.6], ["Albania", 19.9, 41.2], ["Grecia", 22.4, 38.6]];
+  ctx.fillStyle = "#9a9a9a";
+  ctx.font = `${11 * (window.devicePixelRatio || 1)}px sans-serif`;
+  ctx.textAlign = "center";
+  labels.forEach(([name, lon, lat]) => {
+    const [x, y] = project(lon, lat);
+    ctx.fillText(name, x, y);
+  });
+
+  hits = [];
+  list.forEach(p => {
+    const [x, y] = project(p.lon, p.lat);
+    const r = 5 * (window.devicePixelRatio || 1);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    if (p.alerts.length) {
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.lineWidth = 1.6 * (window.devicePixelRatio || 1);
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = p.type === "asta" ? "#1a1a1a" : "#6d6d6d";
+      ctx.fill();
+    }
+    if (selected && selected.id === p.id) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.lineWidth = 1.2 * (window.devicePixelRatio || 1);
+      ctx.stroke();
+    }
+    hits.push({ p, x, y, r: r + 6 });
+  });
+}
+
+function euro(n) {
+  return "€ " + n.toLocaleString("it-IT");
+}
+
+function paintLabels() {
+  const f = filters();
+  document.getElementById("budgetOut").textContent = euro(f.budget);
+  document.getElementById("seaOut").textContent = f.sea + " km";
+  document.getElementById("sqmOut").textContent = f.sqm + " m²";
+}
+
+function applySearch() {
+  const f = filters();
+  const list = visible(f);
+  const counter = document.getElementById("counter");
+  counter.classList.remove("searching");
+  document.getElementById("count").textContent = String(list.length);
+  document.getElementById("countLabel").textContent = list.length === 1 ? "immobile nel filtro" : "immobili nel filtro";
+  const payload = list.slice(0, 6).map(p => ({ id: p.id, lat: Math.round(p.lat * 100) / 100, lon: Math.round(p.lon * 100) / 100, price: p.price }));
+  const hidden = properties.filter(p => p.excluded || insideExclusion(p.lon, p.lat)).length;
+  document.getElementById("log").textContent =
+    "POST /search  (dopo debounce)\n" +
+    JSON.stringify({ budget: f.budget, sea_km: f.sea, min_sqm: f.sqm, type: f.type }) +
+    "\n\nrisposta: " + list.length + " punti  ·  esclusi dal filtro hard: " + hidden +
+    "\n" + JSON.stringify(payload) + (list.length > 6 ? "\n…" : "");
+  draw();
+}
+
+function schedule() {
+  paintLabels();
+  const counter = document.getElementById("counter");
+  counter.classList.add("searching");
+  document.getElementById("count").textContent = "…";
+  document.getElementById("countLabel").textContent = "in pausa, poi una ricerca";
+  clearTimeout(timer);
+  timer = setTimeout(applySearch, 180);
+}
+
+function openSheet(p) {
+  selected = p;
+  const f = filters();
+  document.getElementById("dTitle").textContent = (p.type === "asta" ? "Asta · " : "") + p.city;
+  document.getElementById("dMeta").textContent = p.country + "  ·  id " + p.id;
+  document.getElementById("dFacts").innerHTML =
+    `<span class="pill">${euro(p.price)}</span>` +
+    `<span class="pill">${p.sqm} m²</span>` +
+    `<span class="pill">${p.seaKm} km dal mare</span>` +
+    `<span class="pill score">Match ${matchScore(p, f)}</span>`;
+  const alerts = document.getElementById("dAlerts");
+  alerts.innerHTML = p.alerts.length
+    ? p.alerts.map(a => `<div class="alert">${a}</div>`).join("")
+    : `<div class="alert">Nessun avviso soft su questa scheda</div>`;
+  document.getElementById("sheet").classList.add("open");
+  draw();
+}
+
+canvas.addEventListener("click", (ev) => {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const x = (ev.clientX - rect.left) * dpr;
+  const y = (ev.clientY - rect.top) * dpr;
+  const hit = hits.find(h => Math.hypot(h.x - x, h.y - y) <= h.r + 4);
+  if (hit) openSheet(hit.p);
+});
+
+document.getElementById("close").addEventListener("click", () => {
+  selected = null;
+  document.getElementById("sheet").classList.remove("open");
+  draw();
+});
+
+["budget", "sea", "sqm"].forEach(id => {
+  document.getElementById(id).addEventListener("input", schedule);
+});
+
+document.getElementById("types").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button");
+  if (!btn) return;
+  typeFilter = btn.dataset.type;
+  document.querySelectorAll("#types button").forEach(b => b.classList.toggle("on", b === btn));
+  schedule();
+});
+
+window.addEventListener("resize", resize);
+paintLabels();
+resize();
+applySearch();
+</script>
+</body>
+</html>
