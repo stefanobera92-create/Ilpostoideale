@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Un posto ideale</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <div class="brand">
+        <div>
+          <h1>Un posto ideale</h1>
+          <p>Aste e mercato economico in Italia, Spagna, Albania e Grecia.</p>
+        </div>
+        <div class="shield">Safety Shield attivo</div>
+      </div>
+      <div class="controls">
+        <div class="field">
+          <div class="row"><label for="budget">Budget massimo</label><output id="budgetOut">€ 90.000</output></div>
+          <input id="budget" type="range" min="15000" max="220000" step="5000" value="90000">
+        </div>
+        <div class="field">
+          <div class="row"><label for="sea">Distanza dal mare</label><output id="seaOut">25 km</output></div>
+          <input id="sea" type="range" min="1" max="80" step="1" value="25">
+        </div>
+        <div class="field">
+          <div class="row"><label for="sqm">Superficie minima</label><output id="sqmOut">50 m²</output></div>
+          <input id="sqm" type="range" min="30" max="140" step="5" value="50">
+        </div>
+        <div class="seg" id="types">
+          <button type="button" data-type="tutti" class="on">Tutti</button>
+          <button type="button" data-type="asta">Aste</button>
+          <button type="button" data-type="mercato">Mercato</button>
+        </div>
+      </div>
+      <p class="note">I dati sono dimostrativi. Le zone escluse dal Safety Shield non compaiono. La scheda si apre toccando un punto sulla mappa.</p>
+    </aside>
+    <main class="map-wrap">
+      <canvas id="map"></canvas>
+      <div class="counter" id="counter">
+        <div class="n" id="count">—</div>
+        <div class="l" id="countLabel">immobili nel filtro</div>
+      </div>
+      <div class="legend">
+        <span class="swatch"><i class="dot asta"></i> Asta</span>
+        <span class="swatch"><i class="dot mercato"></i> Mercato</span>
+        <span class="swatch"><i class="dot alert"></i> Avviso soft</span>
+      </div>
+      <div class="error" id="error"></div>
+      <article class="sheet" id="sheet">
+        <button class="close" id="close" type="button" aria-label="Chiudi">×</button>
+        <h2 id="dTitle">—</h2>
+        <div class="meta" id="dMeta">—</div>
+        <div class="facts" id="dFacts"></div>
+        <div id="dAlerts"></div>
+        <div class="placeholder">Foto e descrizione completa, mostrate solo all’apertura della scheda.</div>
+      </article>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 # Un posto ideale
 
-Web app di ricerca immobili con slider, mappa e Safety Shield. I dati sono dimostrativi (Italia, Spagna, Albania, Grecia): non c’è scraping.
+Apri l’app: https://stefanobera92-create.github.io/Ilpostoideale/
+
+Web app di ricerca immobili con slider, mappa e Safety Shield. I dati sono dimostrativi (Italia, Spagna, Albania, Grecia): non c’è scraping. Su GitHub Pages parte da sola; il server Python qui sotto serve solo se vuoi eseguirla sul computer.
 
 ## Avvio
 
