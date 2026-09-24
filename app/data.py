@@ -141,6 +141,103 @@ def _build() -> list[dict]:
     return rows
 
 
+def _condition(row: dict) -> str:
+    if row["type"] == "asta" and row["sqm"] < 80:
+        return "Da ristrutturare"
+    if row["sea_km"] < 8 and row["price"] > 120000:
+        return "Buono stato"
+    return "Abitabile"
+
+
+def _rooms(row: dict) -> int:
+    return max(1, min(5, round(row["sqm"] / 35)))
+
+
+def _summary(row: dict) -> str:
+    kind = "un'asta giudiziaria" if row["type"] == "asta" else "un annuncio del mercato economico"
+    state = _condition(row).lower()
+    return (
+        f"Scheda dimostrativa di {kind} a {row['city']}. "
+        f"Superficie indicativa {row['sqm']} m², stato {state}, "
+        f"a circa {row['sea_km']} km dal mare. "
+        "Prima di un contatto reale verifica prezzo, documenti e recapiti sulla fonte ufficiale."
+    )
+
+
+def contact_for(row: dict) -> dict:
+    country = row["country"]
+    if country == "Italia" and row["type"] == "asta":
+        return {
+            "office": "Portale Vendite Pubbliche",
+            "url": "https://pvp.giustizia.it/",
+            "phone": None,
+            "where": "Nella scheda dell'asta trovi tribunale, custode giudiziario e il numero da chiamare.",
+        }
+    if country == "Italia":
+        return {
+            "office": f"Comune di {row['city']}",
+            "url": "",
+            "phone": None,
+            "where": "Per case a prezzo simbolico o bandi locali chiedi all'ufficio tecnico del comune. Il centralino aggiornato è sul sito comunale.",
+        }
+    if country == "Spagna" and row["type"] == "asta":
+        return {
+            "office": "Portal de Subastas del BOE",
+            "url": "https://subastas.boe.es/",
+            "phone": None,
+            "where": "Apri l'asta sul BOE: lì compaiono il lotto, il tribunale e i recapiti della procedura.",
+        }
+    if country == "Spagna":
+        return {
+            "office": "Portal de Subastas del BOE",
+            "url": "https://subastas.boe.es/",
+            "phone": None,
+            "where": "Per un immobile reale parti dal portale pubblico delle aste o dall'agenzia indicata nell'annuncio originale.",
+        }
+    if country == "Grecia":
+        return {
+            "office": "e-Auction",
+            "url": "https://www.eauction.gr/",
+            "phone": None,
+            "where": "Le aste elettroniche greche pubblicano sul portale i documenti e il modo per presentare un'offerta.",
+        }
+    if country == "Albania":
+        return {
+            "office": "e-Albania",
+            "url": "https://e-albania.al/",
+            "phone": None,
+            "where": "Per un immobile specifico chiedi al comune o allo sportello indicato sul servizio pubblico e-Albania.",
+        }
+    return {
+        "office": "Fonte non disponibile",
+        "url": "",
+        "phone": None,
+        "where": "Scheda dimostrativa, senza un recapito reale.",
+    }
+
+
+def public_row(row: dict, budget: int | None = None, sea_km: float | None = None, min_sqm: int | None = None) -> dict:
+    payload = {
+        "id": row["id"],
+        "city": row["city"],
+        "country": row["country"],
+        "lat": row["lat"],
+        "lon": row["lon"],
+        "price": row["price"],
+        "sqm": row["sqm"],
+        "sea_km": row["sea_km"],
+        "rooms": _rooms(row),
+        "condition": _condition(row),
+        "summary": _summary(row),
+        "type": row["type"],
+        "alerts": row["alerts"],
+        "contact": contact_for(row),
+    }
+    if budget is not None and sea_km is not None and min_sqm is not None:
+        payload["match_score"] = match_score(row, budget, sea_km, min_sqm)
+    return payload
+
+
 PROPERTIES = _build()
 BY_ID = {row["id"]: row for row in PROPERTIES}
 
@@ -182,16 +279,4 @@ def detail(property_id: str, budget: int, sea_km: float, min_sqm: int) -> dict |
     row = BY_ID.get(property_id)
     if row is None or row["excluded"] or _inside_exclusion(row["lon"], row["lat"]):
         return None
-    return {
-        "id": row["id"],
-        "city": row["city"],
-        "country": row["country"],
-        "lat": row["lat"],
-        "lon": row["lon"],
-        "price": row["price"],
-        "sqm": row["sqm"],
-        "sea_km": row["sea_km"],
-        "type": row["type"],
-        "alerts": row["alerts"],
-        "match_score": match_score(row, budget, sea_km, min_sqm),
-    }
+    return public_row(row, budget, sea_km, min_sqm)

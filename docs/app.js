@@ -19,33 +19,29 @@ let hits = [];
 let selectedId = null;
 let timer = null;
 let listingType = "tutti";
+let country = "tutti";
 
 function project(lon, lat) {
   const x = (lon - bounds.minLon) / (bounds.maxLon - bounds.minLon) * canvas.width;
   const y = (1 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * canvas.height;
   return [x, y];
 }
-
-function euro(n) {
-  return "€ " + Number(n).toLocaleString("it-IT");
-}
-
+function euro(n) { return "€ " + Number(n).toLocaleString("it-IT"); }
 function filters() {
   return {
     budget: Number(document.getElementById("budget").value),
     sea_km: Number(document.getElementById("sea").value),
     min_sqm: Number(document.getElementById("sqm").value),
     type: listingType,
+    country,
   };
 }
-
 function paintLabels() {
   const f = filters();
   document.getElementById("budgetOut").textContent = euro(f.budget);
   document.getElementById("seaOut").textContent = f.sea_km + " km";
   document.getElementById("sqmOut").textContent = f.min_sqm + " m²";
 }
-
 function matchScore(row, f) {
   let score = 62;
   score += Math.max(0, (f.budget - row.price) / f.budget) * 22;
@@ -54,91 +50,75 @@ function matchScore(row, f) {
   score -= row.alerts.length * 8;
   return Math.max(35, Math.min(98, Math.round(score)));
 }
-
 function visible(f) {
   return catalog.filter((row) => {
     if (row.price > f.budget || row.sea_km > f.sea_km || row.sqm < f.min_sqm) return false;
     if (f.type !== "tutti" && row.type !== f.type) return false;
+    if (f.country !== "tutti" && row.country !== f.country) return false;
     return true;
-  });
+  }).sort((a, b) => matchScore(b, f) - matchScore(a, f));
 }
-
 function drawPoly(pts, fill) {
   ctx.beginPath();
   pts.forEach((pt, i) => {
     const [x, y] = project(pt[0], pt[1]);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.closePath();
   ctx.fillStyle = fill;
   ctx.fill();
-  ctx.strokeStyle = "#d9d3c8";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#e4d9cc";
   ctx.stroke();
 }
-
 function draw() {
   const dpr = window.devicePixelRatio || 1;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#e7f0f4";
+  ctx.fillStyle = "#d7e6e4";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  land.forEach((poly) => drawPoly(poly, "#f7f4ee"));
-
+  land.forEach((poly) => drawPoly(poly, "#f7f1e8"));
   ctx.beginPath();
   exclusion.forEach((pt, i) => {
     const [x, y] = project(pt[0], pt[1]);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
   ctx.closePath();
-  ctx.fillStyle = "rgba(15, 110, 110, 0.08)";
+  ctx.fillStyle = "rgba(184, 92, 56, 0.12)";
   ctx.fill();
   ctx.setLineDash([5, 4]);
-  ctx.strokeStyle = "#0f6e6e";
+  ctx.strokeStyle = "#b85c38";
   ctx.stroke();
   ctx.setLineDash([]);
   const [lx, ly] = project(17.5, 36.25);
-  ctx.fillStyle = "#0b5555";
+  ctx.fillStyle = "#8a4b12";
   ctx.font = `${11 * dpr}px sans-serif`;
   ctx.textAlign = "center";
   ctx.fillText("zona esclusa", lx, ly);
-
-  ctx.fillStyle = "#9aa7b1";
+  ctx.fillStyle = "#8d8378";
   ctx.font = `${12 * dpr}px sans-serif`;
   [["Spagna", -3.8, 40.2], ["Italia", 12.2, 42.6], ["Albania", 19.9, 41.2], ["Grecia", 22.4, 38.6]]
     .forEach(([name, lon, lat]) => {
       const [x, y] = project(lon, lat);
       ctx.fillText(name, x, y);
     });
-
   hits = [];
   points.forEach((p) => {
     const [x, y] = project(p.lon, p.lat);
-    const r = 5.5 * dpr;
+    const r = (selectedId === p.id ? 7 : 5.2) * dpr;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     if (p.has_alert) {
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = "#fffdf9";
       ctx.fill();
       ctx.lineWidth = 1.7 * dpr;
-      ctx.strokeStyle = "#14202b";
+      ctx.strokeStyle = "#1c1915";
       ctx.stroke();
     } else {
-      ctx.fillStyle = p.type === "asta" ? "#0f6e6e" : "#7d8b97";
+      ctx.fillStyle = p.type === "asta" ? "#0f5f5a" : "#b85c38";
       ctx.fill();
-    }
-    if (selectedId === p.id) {
-      ctx.beginPath();
-      ctx.arc(x, y, r + 4 * dpr, 0, Math.PI * 2);
-      ctx.strokeStyle = "#14202b";
-      ctx.lineWidth = 1.4 * dpr;
-      ctx.stroke();
     }
     hits.push({ id: p.id, x, y, r: r + 8 });
   });
 }
-
 function resize() {
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -146,66 +126,78 @@ function resize() {
   canvas.height = Math.max(1, Math.round(rect.height * dpr));
   draw();
 }
-
 function showError(message) {
   const box = document.getElementById("error");
   box.textContent = message;
   box.style.display = message ? "block" : "none";
 }
-
+function renderList(list, f) {
+  const box = document.getElementById("results");
+  box.innerHTML = list.slice(0, 12).map((row) => `
+    <button class="result${row.id === selectedId ? " on" : ""}" type="button" data-id="${row.id}">
+      <strong>${row.type === "asta" ? "Asta" : "Mercato"} · ${row.city}</strong>
+      <span>${euro(row.price)} · ${row.sqm} m² · ${row.condition} · match ${matchScore(row, f)}</span>
+    </button>`).join("") || `<p class="meta">Nessun immobile con questi filtri.</p>`;
+}
 function runSearch() {
   const f = filters();
   const list = visible(f);
-  points = list.map((row) => ({
-    id: row.id,
-    lat: row.lat,
-    lon: row.lon,
-    price: row.price,
-    type: row.type,
-    has_alert: row.alerts.length > 0,
-  }));
+  points = list.map((row) => ({ id: row.id, lat: row.lat, lon: row.lon, type: row.type, has_alert: row.alerts.length > 0 }));
   document.getElementById("counter").classList.remove("searching");
   document.getElementById("count").textContent = String(list.length);
   document.getElementById("countLabel").textContent = list.length === 1 ? "immobile nel filtro" : "immobili nel filtro";
   showError("");
-  if (selectedId && !points.some((p) => p.id === selectedId)) closeSheet();
+  renderList(list, f);
+  if (selectedId && !list.some((row) => row.id === selectedId)) closeSheet();
+  else if (selectedId) openSheet(selectedId, false);
   draw();
 }
-
 function schedule() {
   paintLabels();
   document.getElementById("counter").classList.add("searching");
   document.getElementById("count").textContent = "…";
-  document.getElementById("countLabel").textContent = "in attesa che il dito si fermi";
+  document.getElementById("countLabel").textContent = "aggiorno i risultati";
   clearTimeout(timer);
-  timer = setTimeout(runSearch, 180);
+  timer = setTimeout(runSearch, 160);
 }
-
-function openSheet(id) {
+function openSheet(id, redraw = true) {
   selectedId = id;
-  draw();
   const row = catalog.find((item) => item.id === id);
   if (!row) return;
   const f = filters();
-  document.getElementById("dTitle").textContent = (row.type === "asta" ? "Asta · " : "") + row.city;
-  document.getElementById("dMeta").textContent = row.country + " · " + row.id;
-  document.getElementById("dFacts").innerHTML =
-    `<span class="pill">${euro(row.price)}</span>` +
-    `<span class="pill">${row.sqm} m²</span>` +
-    `<span class="pill">${row.sea_km} km dal mare</span>` +
-    `<span class="pill score">Match ${matchScore(row, f)}</span>`;
-  document.getElementById("dAlerts").innerHTML = row.alerts
-    .map((alert) => `<div class="alert">${alert}</div>`)
-    .join("");
+  const link = row.contact.url
+    ? `<a href="${row.contact.url}" target="_blank" rel="noopener">Apri la fonte ufficiale</a>`
+    : "";
+  document.getElementById("sheet").innerHTML = `
+    <button class="close" id="close" type="button" aria-label="Chiudi">×</button>
+    <p class="kicker">${row.type === "asta" ? "Asta" : "Mercato"} · ${row.country}</p>
+    <h2>${row.city}</h2>
+    <div class="meta">${row.condition} · id ${row.id}</div>
+    <div class="facts">
+      <span class="pill">${euro(row.price)}</span>
+      <span class="pill">${row.sqm} m²</span>
+      <span class="pill">${row.rooms} locali</span>
+      <span class="pill">${row.sea_km} km dal mare</span>
+      <span class="pill score">Match ${matchScore(row, f)}</span>
+    </div>
+    <p class="summary">${row.summary}</p>
+    ${row.alerts.map((alert) => `<div class="alert">${alert}</div>`).join("")}
+    <div class="contact">
+      <h3>${row.contact.office}</h3>
+      <p>${row.contact.where}</p>
+      ${link}
+    </div>`;
   document.getElementById("sheet").classList.add("open");
+  document.getElementById("close").addEventListener("click", closeSheet);
+  renderList(visible(f), f);
+  if (redraw) draw();
 }
-
 function closeSheet() {
   selectedId = null;
   document.getElementById("sheet").classList.remove("open");
-  draw();
+  document.getElementById("sheet").innerHTML = "";
+  runSearch();
 }
-
 canvas.addEventListener("click", (ev) => {
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -214,11 +206,11 @@ canvas.addEventListener("click", (ev) => {
   const hit = hits.find((h) => Math.hypot(h.x - x, h.y - y) <= h.r);
   if (hit) openSheet(hit.id);
 });
-
-document.getElementById("close").addEventListener("click", closeSheet);
-["budget", "sea", "sqm"].forEach((id) => {
-  document.getElementById(id).addEventListener("input", schedule);
+document.getElementById("results").addEventListener("click", (ev) => {
+  const btn = ev.target.closest(".result");
+  if (btn) openSheet(btn.dataset.id);
 });
+["budget", "sea", "sqm"].forEach((id) => document.getElementById(id).addEventListener("input", schedule));
 document.getElementById("types").addEventListener("click", (ev) => {
   const btn = ev.target.closest("button");
   if (!btn) return;
@@ -226,20 +218,20 @@ document.getElementById("types").addEventListener("click", (ev) => {
   document.querySelectorAll("#types button").forEach((b) => b.classList.toggle("on", b === btn));
   schedule();
 });
-
+document.getElementById("countries").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button");
+  if (!btn) return;
+  country = btn.dataset.country;
+  document.querySelectorAll("#countries button").forEach((b) => b.classList.toggle("on", b === btn));
+  schedule();
+});
+document.getElementById("openInfo").addEventListener("click", () => document.getElementById("info").showModal());
 window.addEventListener("resize", resize);
 paintLabels();
 resize();
-
 fetch("data.json")
-  .then((response) => {
-    if (!response.ok) throw new Error("Dati non disponibili");
-    return response.json();
-  })
-  .then((rows) => {
-    catalog = rows;
-    runSearch();
-  })
+  .then((response) => { if (!response.ok) throw new Error("Dati non disponibili"); return response.json(); })
+  .then((rows) => { catalog = rows; runSearch(); })
   .catch((err) => {
     document.getElementById("count").textContent = "—";
     document.getElementById("countLabel").textContent = "avvio non riuscito";
