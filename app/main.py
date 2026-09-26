@@ -8,7 +8,7 @@ from app.data import detail, search
 
 STATIC = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(title="Un posto ideale", version="0.1.0")
+app = FastAPI(title="Un posto ideale", version="0.2.0")
 
 
 @app.get("/api/health")
@@ -22,9 +22,10 @@ def search_properties(
     sea_km: float = Query(25, gt=0, le=200),
     min_sqm: int = Query(50, ge=10, le=500),
     type: str = Query("tutti", pattern="^(tutti|asta|mercato)$"),
+    country: str = Query("tutti", pattern="^(tutti|Italia|Spagna|Albania|Grecia)$"),
 ) -> dict:
-    """Risposta leggera: solo id, coordinate e prezzo. Niente schede."""
-    return search(budget, sea_km, min_sqm, type)
+    """Lista breve, ordinata per somiglianza. La scheda completa è un'altra chiamata."""
+    return search(budget, sea_km, min_sqm, type, country)
 
 
 @app.get("/api/properties/{property_id}")

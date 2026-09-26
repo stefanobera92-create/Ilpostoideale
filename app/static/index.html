@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-mode="api">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,14 +9,13 @@
 <body>
   <div class="app">
     <aside class="panel">
-      <div class="brand">
-        <div>
-          <h1>Un posto ideale</h1>
-          <p>Aste e mercato economico in Italia, Spagna, Albania e Grecia.</p>
-        </div>
-        <div class="shield">Safety Shield attivo</div>
-      </div>
+      <header class="brand">
+        <p class="eyebrow">La casa che stai cercando</p>
+        <h1>Un posto ideale</h1>
+        <p>Descrivi budget, mare e spazio. In mappa restano solo i posti che ci corrispondono, dal più simile. Sono esempi, non annunci veri.</p>
+      </header>
       <div class="controls">
+        <p class="dream" id="dream"></p>
         <div class="field">
           <div class="row"><label for="budget">Budget massimo</label><output id="budgetOut">€ 90.000</output></div>
           <input id="budget" type="range" min="15000" max="220000" step="5000" value="90000">
@@ -29,36 +28,65 @@
           <div class="row"><label for="sqm">Superficie minima</label><output id="sqmOut">50 m²</output></div>
           <input id="sqm" type="range" min="30" max="140" step="5" value="50">
         </div>
-        <div class="seg" id="types">
-          <button type="button" data-type="tutti" class="on">Tutti</button>
-          <button type="button" data-type="asta">Aste</button>
-          <button type="button" data-type="mercato">Mercato</button>
+        <div class="seg" id="types" role="group" aria-label="Tipo di annuncio">
+          <button type="button" data-type="tutti" class="on" aria-pressed="true">Tutti</button>
+          <button type="button" data-type="asta" aria-pressed="false">Aste</button>
+          <button type="button" data-type="mercato" aria-pressed="false">In vendita</button>
+        </div>
+        <div class="chips" id="countries" role="group" aria-label="Paese">
+          <button type="button" data-country="tutti" class="on" aria-pressed="true">Tutti i paesi</button>
+          <button type="button" data-country="Italia" aria-pressed="false">Italia</button>
+          <button type="button" data-country="Spagna" aria-pressed="false">Spagna</button>
+          <button type="button" data-country="Albania" aria-pressed="false">Albania</button>
+          <button type="button" data-country="Grecia" aria-pressed="false">Grecia</button>
         </div>
       </div>
-      <p class="note">I dati sono dimostrativi. La mappa riceve solo coordinate e id; prezzo, metratura e avvisi arrivano quando si apre una scheda. Le zone nel poligono di esclusione non compaiono mai.</p>
+      <div class="list-head">
+        <h2>Dal più simile</h2>
+      </div>
+      <div class="results" id="results" aria-live="polite"></div>
+      <button class="info-btn" id="openInfo" type="button">Come leggere i risultati</button>
     </aside>
     <main class="map-wrap">
-      <canvas id="map"></canvas>
+      <canvas id="map" aria-label="Mappa del Mediterraneo con i posti nel filtro"></canvas>
       <div class="counter" id="counter">
         <div class="n" id="count">—</div>
-        <div class="l" id="countLabel">immobili nel filtro</div>
+        <div class="l" id="countLabel">posti nel tuo ideale</div>
       </div>
       <div class="legend">
         <span class="swatch"><i class="dot asta"></i> Asta</span>
-        <span class="swatch"><i class="dot mercato"></i> Mercato</span>
-        <span class="swatch"><i class="dot alert"></i> Avviso soft</span>
+        <span class="swatch"><i class="dot mercato"></i> In vendita</span>
+        <span class="swatch"><i class="dot alert"></i> Con avviso</span>
       </div>
-      <div class="error" id="error"></div>
-      <article class="sheet" id="sheet">
-        <button class="close" id="close" type="button" aria-label="Chiudi">×</button>
-        <h2 id="dTitle">—</h2>
-        <div class="meta" id="dMeta">—</div>
-        <div class="facts" id="dFacts"></div>
-        <div id="dAlerts"></div>
-        <div class="placeholder">Foto e descrizione completa, caricate solo all’apertura della scheda.</div>
-      </article>
+      <div class="error" id="error" role="alert"></div>
+      <article class="sheet" id="sheet" aria-live="polite"></article>
     </main>
   </div>
+  <dialog id="info">
+    <form method="dialog">
+      <header>
+        <h2>Come leggere i risultati</h2>
+        <button class="close" value="cancel" type="submit" aria-label="Chiudi">×</button>
+      </header>
+      <p class="lead">L’app confronta i tuoi criteri con case di esempio in Italia, Spagna, Albania e Grecia. Non sono annunci veri e non pubblicano numeri di privati.</p>
+      <section>
+        <h3>Cosa stai chiedendo</h3>
+        <p>Budget, distanza dal mare, metri quadri, paese e tipo (asta o vendita) descrivono il posto che cerchi. Se un dato non rientra, la casa sparisce da mappa e lista.</p>
+      </section>
+      <section>
+        <h3>Perché un posto sta in alto</h3>
+        <p>«Ci somiglia molto» significa che hai margine sul prezzo, il mare è più vicino del limite e lo spazio supera il minimo. Un avviso, sismico o di criminalità, abbassa il posto: resta visibile, ma non è da scegliere a occhi chiusi.</p>
+      </section>
+      <section>
+        <h3>La zona tratteggiata</h3>
+        <p>Il rettangolo in mare a sud-est della Sicilia è un filtro duro di esempio. Le case lì dentro non compaiono mai. Non è una zona reale.</p>
+      </section>
+      <section>
+        <h3>Dove verificare</h3>
+        <p>Italia, aste: <a href="https://pvp.giustizia.it/" target="_blank" rel="noopener">Portale Vendite Pubbliche</a>. Spagna, aste: <a href="https://subastas.boe.es/" target="_blank" rel="noopener">Portal de Subastas del BOE</a>. Grecia, aste: <a href="https://www.eauction.gr/" target="_blank" rel="noopener">e-Auction</a>. Albania: <a href="https://e-albania.al/" target="_blank" rel="noopener">e-Albania</a> e il comune. Una vendita reale indica l’agenzia nell’annuncio.</p>
+      </section>
+    </form>
+  </dialog>
   <script src="/static/app.js"></script>
 </body>
 </html>
